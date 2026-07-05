@@ -169,6 +169,28 @@
         .btn-back:hover{
             background:var(--md-surface-container-high);
         }
+        .progress-container{
+            width:100%;
+            height:8px;
+            background:var(--md-surface-container-high);
+            border-radius:100px;
+            margin-top:16px;
+            overflow:hidden;
+            display:none;
+        }
+        .progress-bar{
+            height:100%;
+            background:var(--md-primary);
+            border-radius:100px;
+            width:0%;
+            transition:width 0.2s ease;
+        }
+        .progress-text{
+            font-size:13px;
+            color:var(--md-on-surface-variant);
+            margin-top:8px;
+            display:none;
+        }
         @media (max-width:420px){
             .card{padding:32px 24px;}
             .app-icon{width:80px;height:80px;}
@@ -207,14 +229,120 @@
                 <span class="value">2026-07-05</span>
             </div>
         </div>
-        <a href="https://github.com/Uwa-Temperate/Untitled_Chat1031/releases/download/v4.35.2/Untitled.Chat_4.35.2.apk" download="Untitled Chat_4.35.2.apk" class="btn-download">
+        <button onclick="startDownload()" class="btn-download">
             <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-            <span>下载安装包</span>
-        </a>
+            <span id="btn-text">下载安装包</span>
+        </button>
+        <div class="progress-container" id="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <div class="progress-text" id="progress-text">0% · 0 MB / 41.9 MB</div>
         <button class="btn-back" onclick="history.back()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
             返回
         </button>
     </div>
+    <script>
+        const APK_URL = 'https://github.com/Uwa-Temperate/Untitled_Chat1031/releases/download/v4.35.2/Untitled.Chat_4.35.2.apk';
+        const FILE_NAME = 'Untitled Chat_4.35.2.apk';
+        const TOTAL_SIZE = 43972795;
+        let isDownloading = false;
+
+        function formatSize(bytes){
+            return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+
+        function startDownload(){
+            if(isDownloading) return;
+            isDownloading = true;
+
+            const btn = document.querySelector('.btn-download');
+            const btnText = document.getElementById('btn-text');
+            const progressContainer = document.getElementById('progress-container');
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+
+            btn.style.opacity = '0.7';
+            btn.style.cursor = 'not-allowed';
+            btnText.textContent = '下载中...';
+            progressContainer.style.display = 'block';
+            progressText.style.display = 'block';
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', APK_URL, true);
+            xhr.responseType = 'blob';
+
+            xhr.onprogress = function(e){
+                if(e.lengthComputable){
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    progressBar.style.width = percent + '%';
+                    progressText.textContent = percent + '% · ' + formatSize(e.loaded) + ' / ' + formatSize(e.total);
+                }else{
+                    const percent = Math.round((e.loaded / TOTAL_SIZE) * 100);
+                    progressBar.style.width = percent + '%';
+                    progressText.textContent = percent + '% · ' + formatSize(e.loaded) + ' / ' + formatSize(TOTAL_SIZE);
+                }
+            };
+
+            xhr.onload = function(){
+                if(xhr.status >= 200 && xhr.status < 300){
+                    progressBar.style.width = '100%';
+                    progressText.textContent = '100% · ' + formatSize(TOTAL_SIZE) + ' / ' + formatSize(TOTAL_SIZE) + ' · 下载完成';
+                    btnText.textContent = '下载完成';
+
+                    const blob = xhr.response;
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = FILE_NAME;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    setTimeout(() => {
+                        isDownloading = false;
+                        btn.style.opacity = '1';
+                        btn.style.cursor = 'pointer';
+                        btnText.textContent = '下载安装包';
+                        progressContainer.style.display = 'none';
+                        progressText.style.display = 'none';
+                        progressBar.style.width = '0%';
+                    }, 2000);
+                }else{
+                    handleDownloadError();
+                }
+            };
+
+            xhr.onerror = function(){
+                handleDownloadError();
+            };
+
+            function handleDownloadError(){
+                isDownloading = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+                btnText.textContent = '下载失败，重试';
+                progressText.textContent = '下载失败，请重试';
+
+                const a = document.createElement('a');
+                a.href = APK_URL;
+                a.download = FILE_NAME;
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                setTimeout(() => {
+                    btnText.textContent = '下载安装包';
+                    progressContainer.style.display = 'none';
+                    progressText.style.display = 'none';
+                    progressBar.style.width = '0%';
+                }, 2000);
+            }
+
+            xhr.send();
+        }
+    </script>
 </body>
 </html>
